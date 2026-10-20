@@ -32,7 +32,7 @@ export function buildWormPaths(): WormPath[] {
         const e = t * t * (3 - 2 * t); // smooth approach
         const bx = sx + (ex - sx) * t;
         const by = sy + (ey - sy) * e;
-        const amp = 22 * (1 - t); // wiggle fades as it arrives
+        const amp = 30 * (1 - t); // wiggle fades as it arrives
         const wx = Math.sin(t * Math.PI * 2 * waves + li) * amp;
         pts.push(`L${(bx + wx * 0.6).toFixed(1)} ${(by + wx).toFixed(1)}`);
       }

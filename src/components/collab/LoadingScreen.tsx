@@ -16,7 +16,7 @@ export interface LoadingTiming {
 
 export const DEFAULT_TIMING: LoadingTiming = {
   awaken: 450,
-  snake: 1250,
+  snake: 1450,
   converge: 650,
   sweep: 700,
   minHold: 250,
@@ -78,6 +78,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
       els.forEach((el, k) => {
         place(k, 1);
         el.style.strokeWidth = "";
+        el.style.opacity = "1";
       });
       letterRefs.current.forEach((g) => g && (g.style.opacity = "1"));
     };
@@ -103,6 +104,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
         const dur = T.snake + T.converge - LETTERS.length * 110;
         const p = clamp((t - begin) / dur);
         place(k, easeInOut(p));
+        el.style.opacity = p > 0 ? "1" : "0";
         // Pulse travels along the snake from letter to letter, fading on arrival.
         const pulse = Math.sin(t / 140 - li * 0.9) * (1 - easeOut(p)) * (p > 0 ? 1 : 0);
         el.style.strokeWidth = (LOGO_STROKE * (1 + 0.28 * pulse)).toFixed(2);
