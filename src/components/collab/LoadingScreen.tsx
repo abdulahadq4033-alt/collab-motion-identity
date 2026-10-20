@@ -61,7 +61,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
     const lens = els.map((el, k) => {
       const total = el.getTotalLength();
       const probe = document.createElementNS(NS, "path");
-      probe.setAttribute("d", LETTER_SUBPATHS[k]);
+      probe.setAttribute("d", LETTER_SUBPATHS[k] ?? "");
       svg?.appendChild(probe);
       const seg = probe.getTotalLength();
       probe.remove();
@@ -69,10 +69,13 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
       return { total, seg };
     });
     const place = (k: number, p: number) => {
-      const { total, seg } = lens[k];
+      const m = lens[k];
+      const el = els[k];
+      if (!m || !el) return;
+      const { total, seg } = m;
       // p=0: worm hidden before the path start; p=1: worm rests exactly on the letter.
       const s = -seg + p * (total);
-      els[k].style.strokeDashoffset = (-(s)).toFixed(2);
+      el.style.strokeDashoffset = (-(s)).toFixed(2);
     };
     const settle = () => {
       els.forEach((el, k) => {
@@ -99,7 +102,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
     const frame = (now: number) => {
       const t = now - start;
       els.forEach((el, k) => {
-        const li = WORMS[k].letter;
+        const li = WORMS[k]?.letter ?? 0;
         const begin = T.awaken + li * 110 + (k % 2) * 40;
         const dur = T.snake + T.converge - LETTERS.length * 110;
         const p = clamp((t - begin) / dur);

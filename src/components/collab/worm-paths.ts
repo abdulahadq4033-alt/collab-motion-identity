@@ -13,7 +13,7 @@ export interface WormPath {
 
 function startPoint(d: string): [number, number] {
   const m = d.match(/^M\s*([-\d.]+)[\s,]+([-\d.]+)/);
-  return m ? [parseFloat(m[1]), parseFloat(m[2])] : [0, 0];
+  return m ? [parseFloat(m[1] ?? "0"), parseFloat(m[2] ?? "0")] : [0, 0];
 }
 
 export function buildWormPaths(): WormPath[] {
