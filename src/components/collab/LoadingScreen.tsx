@@ -145,7 +145,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
   const { x, y, w, h } = LOGO_VIEWBOX;
   const letterShapes = (stroke: string, keyPrefix: string) =>
     LETTERS.map((L, i) => (
-      <g key={`${keyPrefix}${i}`} ref={keyPrefix === "l" ? (el) => (letterRefs.current[i] = el) : undefined}>
+      <g key={`${keyPrefix}${i}`} ref={keyPrefix === "l" ? (el) => { letterRefs.current[i] = el; } : undefined}>
         {L.paths.map((d, j) => (
           <path key={j} d={d} />
         ))}
