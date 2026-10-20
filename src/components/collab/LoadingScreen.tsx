@@ -116,7 +116,21 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
     };
     raf = requestAnimationFrame(frame);
     void n;
-    return () => cancelAnimationFrame(raf);
+    // Safety net: if frames are throttled (hidden tab/iframe), still show the final mark.
+    const fallback = window.setTimeout(() => {
+      cancelAnimationFrame(raf);
+      letterRefs.current.forEach((g) => {
+        if (!g) return;
+        g.setAttribute("transform", "");
+        g.style.opacity = "1";
+      });
+      root?.setAttribute("data-state", "breathing");
+      setIntroDone(true);
+    }, introEnd + 800);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(fallback);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skipping]);
 
