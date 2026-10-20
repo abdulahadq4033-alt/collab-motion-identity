@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Route as HomeRoute } from "./index";
+import { HomePage } from "@/components/collab/HomePage";
 
 // Some preview links open "/index" — show the home page there too (no redirect).
 export const Route = createFileRoute("/index")({
@@ -13,8 +13,5 @@ export const Route = createFileRoute("/index")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: () => {
-    const Home = HomeRoute.options.component!;
-    return <Home />;
-  },
+  component: HomePage,
 });
