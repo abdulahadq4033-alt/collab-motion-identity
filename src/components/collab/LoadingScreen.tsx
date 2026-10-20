@@ -35,7 +35,7 @@ const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
   const T = { ...DEFAULT_TIMING, ...timing };
-  const introEnd = T.awaken + T.snake + T.converge + T.sweep;
+  const introEnd = T.awaken + T.snake + T.converge + 220 + T.sweep;
   const letterRefs = useRef<(SVGGElement | null)[]>([]);
   const sweepRef = useRef<SVGRectElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -97,7 +97,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
       });
 
       // Light sweep across the formed wordmark.
-      const sweepP = clamp((t - (convergeStart + T.converge * 0.7)) / T.sweep);
+      const sweepP = clamp((t - (convergeStart + T.converge + 220)) / T.sweep);
       if (sweepRef.current) {
         const sx = -200 + easeInOut(sweepP) * (LOGO_VIEWBOX.w + 300);
         sweepRef.current.setAttribute("x", sx.toFixed(1));
