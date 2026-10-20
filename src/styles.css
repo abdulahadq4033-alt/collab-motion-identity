@@ -239,3 +239,6 @@ body { font-family: var(--font-display); background: var(--collab-bg); }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .collab-app__lede { color: var(--collab-dim); max-width: 32rem; margin-inline: auto; }
+
+/* No-JS / pre-hydration fallback: letters still appear */
+.collab-loader:not([data-state]) .collab-loader__letters g { animation: collab-fadein 700ms ease 1.4s both; }
