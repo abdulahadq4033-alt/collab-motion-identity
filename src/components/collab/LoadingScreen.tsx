@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { buildWormPaths } from "./worm-paths";
 import { GRADIENT_STOPS, LETTERS, LOGO_STROKE, LOGO_VIEWBOX } from "./logo-geometry";
+
+const WORMS = buildWormPaths();
+const LETTER_SUBPATHS = LETTERS.flatMap((l) => l.paths);
 
 export interface LoadingTiming {
   awaken: number; // light appears
@@ -12,7 +16,7 @@ export interface LoadingTiming {
 
 export const DEFAULT_TIMING: LoadingTiming = {
   awaken: 450,
-  snake: 1250,
+  snake: 1450,
   converge: 650,
   sweep: 700,
   minHold: 250,
@@ -35,8 +39,10 @@ const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
   const T = { ...DEFAULT_TIMING, ...timing };
-  const introEnd = T.awaken + T.snake + T.converge + 220 + T.sweep;
+  const introEnd = T.awaken + T.snake + T.converge + 120 + T.sweep;
   const letterRefs = useRef<(SVGGElement | null)[]>([]);
+  const wormRefs = useRef<(SVGPathElement | null)[]>([]);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const sweepRef = useRef<SVGRectElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [introDone, setIntroDone] = useState(false);
@@ -44,86 +50,89 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
   const [userSkip, setUserSkip] = useState(false);
   const skipping = skip || userSkip;
 
-  // Main animation loop (time-based → frame-rate independent).
+  // Worm animation loop (time-based → frame-rate independent).
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const root = rootRef.current;
+    const svg = svgRef.current;
+    const els = wormRefs.current.filter(Boolean) as SVGPathElement[];
+    // Measure each worm: total path length and the final letter-stroke length.
+    const NS = "http://www.w3.org/2000/svg";
+    const lens = els.map((el, k) => {
+      const total = el.getTotalLength();
+      const probe = document.createElementNS(NS, "path");
+      probe.setAttribute("d", LETTER_SUBPATHS[k] ?? "");
+      svg?.appendChild(probe);
+      const seg = probe.getTotalLength();
+      probe.remove();
+      el.style.strokeDasharray = `${seg} ${total * 2}`;
+      return { total, seg };
+    });
+    const place = (k: number, p: number) => {
+      const m = lens[k];
+      const el = els[k];
+      if (!m || !el) return;
+      const { total, seg } = m;
+      // p=0: worm hidden before the path start; p=1: worm rests exactly on the letter.
+      const s = -seg + p * (total);
+      el.style.strokeDashoffset = (-(s)).toFixed(2);
+    };
+    const settle = () => {
+      els.forEach((el, k) => {
+        place(k, 1);
+        el.style.strokeWidth = "";
+        el.style.opacity = "1";
+      });
+      letterRefs.current.forEach((g) => g && (g.style.opacity = "1"));
+    };
+
     if (reduced || skipping) {
       root?.setAttribute("data-state", "static");
-      letterRefs.current.forEach((g) => {
-        if (!g) return;
-        g.setAttribute("transform", "");
-        g.style.opacity = "1";
-      });
+      settle();
       setIntroDone(true);
       return;
     }
     root?.setAttribute("data-state", "animating");
-    const n = LETTERS.length;
-    const centre = LOGO_VIEWBOX.w / 2;
+    letterRefs.current.forEach((g) => g && (g.style.opacity = "1"));
+    els.forEach((_, k) => place(k, 0));
+    const wormEnd = T.awaken + T.snake + T.converge;
     let raf = 0;
     const start = performance.now();
 
     const frame = (now: number) => {
       const t = now - start;
-      const snakeT = t - T.awaken;
-      const convergeStart = T.awaken + T.snake;
-
-      LETTERS.forEach((L, i) => {
-        const g = letterRefs.current[i];
-        if (!g) return;
-        const stagger = i * 70;
-        // Appear: staggered emergence from the central light.
-        const appear = easeOut(clamp((snakeT - stagger) / 380));
-        // Converge progress for this letter (also staggered).
-        const conv = easeInOut(clamp((t - convergeStart - stagger * 0.6) / T.converge));
-        const free = 1 - conv;
-        // Travel along an invisible current: compact line drifting right into place.
-        const flow = clamp(snakeT / (T.snake + T.converge));
-        const spread = 0.45 + 0.55 * easeInOut(flow);
-        const baseX = centre + (L.cx - centre) * spread - 60 * (1 - easeOut(flow));
-        const phase = snakeT / 260 - i * 0.85;
-        const amp = 26 * free;
-        const y = Math.sin(phase) * amp;
-        const pulse = 1 + 0.08 * Math.sin(phase + Math.PI / 2) * free;
-        const rot = Math.cos(phase) * 12 * free;
-        const x = (baseX - L.cx) * free;
-        const s = (0.6 + 0.4 * appear) * pulse;
-        g.setAttribute(
-          "transform",
-          `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${rot.toFixed(2)} ${L.cx} 70) translate(${L.cx} 70) scale(${s.toFixed(4)}) translate(${-L.cx} -70)`,
-        );
-        g.style.opacity = appear.toFixed(3);
+      els.forEach((el, k) => {
+        const li = WORMS[k]?.letter ?? 0;
+        const begin = T.awaken + li * 110 + (k % 2) * 40;
+        const dur = T.snake + T.converge - LETTERS.length * 110;
+        const p = clamp((t - begin) / dur);
+        place(k, easeInOut(p));
+        el.style.opacity = p > 0 ? "1" : "0";
+        // Pulse travels along the snake from letter to letter, fading on arrival.
+        const pulse = Math.sin(t / 140 - li * 0.9) * (1 - easeOut(p)) * (p > 0 ? 1 : 0);
+        el.style.strokeWidth = (LOGO_STROKE * (1 + 0.28 * pulse)).toFixed(2);
       });
 
-      // Light sweep across the formed wordmark.
-      const sweepP = clamp((t - (convergeStart + T.converge + 220)) / T.sweep);
+      const sweepP = clamp((t - (wormEnd + 120)) / T.sweep);
       if (sweepRef.current) {
         const sx = -200 + easeInOut(sweepP) * (LOGO_VIEWBOX.w + 300);
         sweepRef.current.setAttribute("x", sx.toFixed(1));
         sweepRef.current.style.opacity = sweepP > 0 && sweepP < 1 ? "1" : "0";
       }
-      if (root) {
-        const glow = sweepP > 0 ? Math.sin(sweepP * Math.PI) : 0;
-        root.style.setProperty("--intro-glow", glow.toFixed(3));
-      }
+      if (root) root.style.setProperty("--intro-glow", (sweepP > 0 ? Math.sin(sweepP * Math.PI) : 0).toFixed(3));
 
       if (t < introEnd) raf = requestAnimationFrame(frame);
       else {
+        settle();
         root?.setAttribute("data-state", "breathing");
         setIntroDone(true);
       }
     };
     raf = requestAnimationFrame(frame);
-    void n;
     // Safety net: if frames are throttled (hidden tab/iframe), still show the final mark.
     const fallback = window.setTimeout(() => {
       cancelAnimationFrame(raf);
-      letterRefs.current.forEach((g) => {
-        if (!g) return;
-        g.setAttribute("transform", "");
-        g.style.opacity = "1";
-      });
+      settle();
       root?.setAttribute("data-state", "breathing");
       setIntroDone(true);
     }, introEnd + 800);
@@ -184,6 +193,7 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
         ))}
       </div>
       <svg
+        ref={svgRef}
         className="collab-loader__mark"
         viewBox={`${x - 40} ${y - 40} ${w + 80} ${h + 80}`}
         preserveAspectRatio="xMidYMid meet"
@@ -218,7 +228,15 @@ export function LoadingScreen({ ready, onDone, timing, skip }: Props) {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          {letterShapes("grad", "l")}
+          {LETTERS.map((_, li) => (
+            <g key={li} ref={(el) => { letterRefs.current[li] = el; }}>
+              {WORMS.map((w, k) =>
+                w.letter === li ? (
+                  <path key={k} d={w.d} ref={(el) => { wormRefs.current[k] = el; }} />
+                ) : null,
+              )}
+            </g>
+          ))}
         </g>
         <g mask="url(#collab-mask)">
           <rect x={x} y={y} width={w} height={h * 0.55} fill="url(#collab-gloss)" />
