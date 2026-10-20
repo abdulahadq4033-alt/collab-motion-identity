@@ -12,7 +12,7 @@ export interface LetterGlyph {
 
 export const LETTERS: LetterGlyph[] = [
   { char: "C", cx: 58, paths: ["M88.2 43.8 A37 37 0 1 0 88.2 96.2"] },
-  { char: "O", cx: 160, paths: ["M160 33 A37 37 0 1 1 159.99 33 Z"] },
+  { char: "O", cx: 160, paths: ["M160 33 A37 37 0 1 1 160 107 A37 37 0 1 1 160 33"] },
   { char: "L", cx: 254, paths: ["M232 33 V107 H278"] },
   { char: "L", cx: 328, paths: ["M306 33 V107 H352"] },
   { char: "A", cx: 414, paths: ["M380 107 L414 33 L448 107", "M396 82 H432"] },
